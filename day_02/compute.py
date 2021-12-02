@@ -1,47 +1,76 @@
 import dataclasses
-from functools import reduce
+from enum import Enum
 from typing import List
+
+
+class ActionType(Enum):
+    Forward = 'forward'
+    Down = 'down'
+    Up = 'up'
 
 
 @dataclasses.dataclass
 class Action:
+    move: "ActionType"
+    value: int
+
+    @classmethod
+    def from_str(cls, content: str) -> "Action":
+        action, value = content.split(' ')
+        return cls(ActionType(action), int(value))
+
+
+@dataclasses.dataclass()
+class Location:
     horizontal: int = 0
     depth: int = 0
     aim: int = 0
 
     @classmethod
-    def from_str(cls, content: str) -> "Action":
-        action, value = content.split(' ')
-        if action == 'forward':
-            return cls(int(value), 0)
-        elif action == 'down':
-            return cls(0, int(value))
-        elif action == 'up':
-            return cls(0, -int(value))
+    def naive_reduce(cls, data: List[Action]) -> "Location":
+        rv = Location()
+        for d in data:
+            rv.naive_reduce_action(d)
+        return rv
+
+    @classmethod
+    def complex_reduce(cls, data: List[Action]) -> "Location":
+        rv = Location()
+        for d in data:
+            rv.complex_reduce_action(d)
+        return rv
 
     @property
-    def location(self):
+    def location(self) -> int:
         return self.horizontal * self.depth
 
-    def naive_reduce(self, other: "Action") -> "Action":
-        return Action(self.horizontal + other.horizontal, self.depth + other.depth)
+    def __str__(self):
+        return f"(horiz={self.horizontal}, depth={self.depth}, aim={self.aim}) location={self.location}"
 
-    def complex_reduce(self, other: "Action") -> "Action":
-        if other.depth > 0:
-            # "down"
-            self.aim += other.depth
-        elif other.depth < 0:
-            # "up"
-            self.aim += other.depth
+    def naive_reduce_action(self, action: "Action") -> "Location":
+        if action.move == ActionType.Forward:
+            self.horizontal += action.value
+        elif action.move == ActionType.Down:
+            self.depth += action.value
+        elif action.move == ActionType.Up:
+            self.depth -= action.value
         else:
-            # "forward"
-            self.horizontal += other.horizontal
-            self.depth += self.aim * other.horizontal
+            raise ValueError(f'Unexpected ActionType in {action}')
 
         return self
 
-    def __str__(self):
-        return f"({self.horizontal}, {self.depth})->{self.location}"
+    def complex_reduce_action(self, action: "Action") -> "Location":
+        if action.move == ActionType.Forward:
+            self.horizontal += action.value
+            self.depth += self.aim * action.value
+        elif action.move == ActionType.Down:
+            self.aim += action.value
+        elif action.move == ActionType.Up:
+            self.aim -= action.value
+        else:
+            raise ValueError(f'Unexpected ActionType in {action}')
+
+        return self
 
 
 def load_input(filename: str) -> List[Action]:
@@ -55,20 +84,11 @@ def load_input(filename: str) -> List[Action]:
     return rv
 
 
-def reduce_q1(data: List[Action]) -> Action:
-    return reduce(Action.naive_reduce, data, Action())
-
-
-def reduce_q2(data: List[Action]) -> Action:
-    return reduce(Action.complex_reduce, data, Action())
-
-
 if __name__ == '__main__':
+    input_data = load_input('input.txt')
 
-    data = load_input('input.txt')
-
-    final_position = reduce_q1(data)
+    final_position = Location.naive_reduce(input_data)
     print(f"Q1: final position: {final_position}")
 
-    complete_position = reduce_q2(data)
+    complete_position = Location.complex_reduce(input_data)
     print(f"Q2: complete position: {complete_position}")
