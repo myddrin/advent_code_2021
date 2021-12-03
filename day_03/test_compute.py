@@ -1,6 +1,6 @@
 import pytest
 
-from day_03.compute import ReportBinary, load_input, extract_rates
+from day_03.compute import ReportBinary, load_input, extract_rates, filter_report
 
 
 class TestReoportBinary:
@@ -30,7 +30,23 @@ class TestReoportBinary:
         assert ReportBinary.from_str(value).bit_length == exp
 
 
-def test_example():
+def test_q2_example_o2():
+    report, bit_size = load_input('example.txt')
+
+    o2_report = filter_report(report, bit_size, ReportBinary.o2_filter)
+    assert len(o2_report) == 1
+    assert o2_report == [ReportBinary.from_str('10111')]
+
+
+def test_q2_example_co2():
+    report, bit_size = load_input('example.txt')
+
+    co2_report = filter_report(report, bit_size, ReportBinary.co2_filter)
+    assert len(co2_report) == 1
+    assert co2_report == [ReportBinary.from_str('01010')]
+
+
+def test_q1_example():
     report, bit_size = load_input('example.txt')
     gama, epsilon = extract_rates(report, bit_size)
     assert gama.value == 22
@@ -42,3 +58,16 @@ def test_q1():
     assert gama.value == 284
     assert epsilon.value == 3811
     assert gama.value * epsilon.value == 1082324
+
+
+def test_q2():
+    report, bit_size = load_input('input.txt')
+    o2_rating = filter_report(report, bit_size, ReportBinary.o2_filter)
+    assert len(o2_rating) == 1
+    assert o2_rating[0].value == 486
+
+    co2_rating = filter_report(report, bit_size, ReportBinary.co2_filter)
+    assert len(co2_rating) == 1
+    assert co2_rating[0].value == 2784
+
+    assert o2_rating[0].value * co2_rating[0].value == 1353024
