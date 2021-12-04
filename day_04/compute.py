@@ -5,6 +5,7 @@ from typing import List, Iterator, Dict, Tuple, Optional
 class Board:
     entries: List[List["Board.Entry"]] = dataclasses.field(default_factory=list)
     entry_map: Dict[int, Tuple[int, int]] = dataclasses.field(default_factory=dict)
+    finished: bool = False  # when the board was won
 
     @dataclasses.dataclass
     class Entry:
@@ -63,6 +64,17 @@ class Board:
 
 
 @dataclasses.dataclass
+class Score:
+    board: int
+    score: int
+    turn: int
+    value: int
+
+    def __str__(self):
+        return f"Bingo on {self.value}! turn {self.turn} board {self.board} score {self.score}"
+
+
+@dataclasses.dataclass
 class Game:
     numbers: List[int]
     boards: List[Board]
@@ -89,18 +101,47 @@ class Game:
 
         return cls(numbers, boards)
 
-    def play(self, st: int = 0, end: int = None) -> Optional[Tuple[int, int]]:
+    def play(self, start: int = 0, end: int = None) -> Optional[Score]:
         if end is None:
             end = len(self.numbers)
 
-        for turn, n in enumerate(self.numbers[st:end], start=st):
+        for turn, n in enumerate(self.numbers[start:end], start=start):
             for bi, b in enumerate(self.boards):
+                if b.finished:
+                    continue
+
                 v = b.check(n)
                 if v is not None:
-                    print(f"Bingo on {n}! (turn {turn} board {bi} location {v})")
-                    return bi, b.unmarked_score() * n
+                    b.finished = True
+                    return Score(
+                        bi,
+                        b.unmarked_score() * n,
+                        turn,
+                        n
+                    )
 
         return None
+
+    def finished_boards(self):
+        return sum((
+            1
+            for b in self.boards
+            if b.finished
+        ))
+
+    def until_last(self, start: int = 0) -> Optional[Score]:
+        finished = self.finished_boards()
+        turn = start
+        score = None
+        while finished != len(self.boards):
+            score = self.play(turn)
+            if score is None:
+                return score
+            turn = score.turn
+            finished = self.finished_boards()
+            # print(f"Found {str(score)} finished={finished}")
+
+        return score
 
 
 if __name__ == '__main__':
@@ -111,4 +152,10 @@ if __name__ == '__main__':
     if score is None:
         print('Nobody won!')
     else:
-        print(f"Q1: board {score[0]} wins with score of {score[1]}")
+        print(f"Q1: {str(score)}")
+
+    last_score = game.until_last(start=score.turn)
+    if last_score is None:
+        print('No last board!?')
+    else:
+        print(f"Q2: {str(last_score)}")

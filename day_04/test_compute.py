@@ -76,7 +76,7 @@ class TestGame:
         assert game.boards[0] == exp_board_0
         assert game.boards[2] == exp_board_2
 
-    def test_play_example(self):
+    def test_play_q1_example(self):
         game = Game.load_game('example.txt')
 
         # score = game.play(end=5)
@@ -86,9 +86,29 @@ class TestGame:
         # assert score is None
 
         score = game.play()
-        assert score == (2, 4512)
+        assert score.board == 2
+        assert score.value == 24
+        assert score.score == 4512
+
+    def test_play_q2_example(self):
+        game = Game.load_game('example.txt')
+        score = game.until_last()
+
+        assert score is not None
+        assert score.board == 1
+        assert score.value == 13
+        assert score.score == 1924
 
 
 def test_q1():
     game = Game.load_game('input.txt')
-    assert game.play() == (48, 31424)
+    v = game.play()
+    assert v.board == 48
+    assert v.score == 31424
+
+
+def test_q2():
+    game = Game.load_game('input.txt')
+    v = game.until_last()
+    assert v.board == 15
+    assert v.score == 23042
