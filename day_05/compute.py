@@ -19,19 +19,27 @@ class Point:
         # TODO(tr) Dataclass thinks 2 ints are unsafe hash, why?
         return hash(str(self))
 
-    def straight_line(self, other: "Point") -> Iterable["Point"]:
-        if self.y == other.y:
-            min_x = min(self.x, other.x)
-            max_x = max(self.x, other.x)
-            for x in range(min_x, max_x + 1):
-                yield Point(x, self.y)
-        elif self.x == other.x:
-            min_y = min(self.y, other.y)
-            max_y = max(self.y, other.y)
-            for y in range(min_y, max_y + 1):
-                yield Point(self.x, y)
-        else:
-            raise ValueError()
+    def line(self, other: "Point", straight: bool = True) -> Iterable["Point"]:
+        min_x = min(self.x, other.x)
+        max_x = max(self.x, other.x)
+        min_y = min(self.y, other.y)
+        max_y = max(self.y, other.y)
+
+        step_x = 0
+        step_y = 0
+        if self.y != other.y:
+            step_y = 1 if self.y < other.y else -1
+        if self.x != other.x:
+            step_x = 1 if self.x < other.x else -1
+
+        if straight and step_x != 0 and step_y != 0:
+            raise ValueError(f'Does not support not straight lines {str(self)}->{str(other)}')
+
+        st = Point(self.x, self.y)
+        while st != other:
+            yield st
+            st = Point(st.x + step_x, st.y + step_y)
+        yield st  # last point
 
 
 @dataclasses.dataclass
@@ -77,7 +85,7 @@ class Map:
         return lines
 
     @classmethod
-    def load_map(cls, filename: str, straight=True):
+    def load_map(cls, filename: str, straight: bool = True):
         rv = Map()
         ignored = []
         with open(filename, 'r') as f:
@@ -85,27 +93,33 @@ class Map:
                 line = line.replace('\n', '')
                 start, end = map(Point.from_str, line.split(' -> '))  # type: Point
 
-                if straight:
-                    try:
-                        for p in start.straight_line(end):
-                            rv.set(p)
-                    except ValueError:
-                        ignored.append(line)
-                else:
-                    raise NotImplementedError()
+                try:
+                    for p in start.line(end, straight):
+                        rv.set(p)
+                except ValueError:
+                    ignored.append(line)
 
         if ignored:
             print(f'Ignored {len(ignored)} lines')
         return rv
 
 
-if __name__ == '__main__':
-    data = Map.load_map('input.txt', straight=True)
-
-    print(f'Loaded map with {len(data.points)} points')
-    with open('output_q1.txt', 'w') as f:
-        for l in data.map_str():
+def write_map(datamap: Map, filename: str):
+    print(f'Loaded map with {len(datamap.points)} points, writing it into "{filename}"')
+    with open(filename, 'w') as f:
+        for l in datamap.map_str():
             f.write(l + '\n')
 
+
+if __name__ == '__main__':
+    data = Map.load_map('input.txt', straight=True)
+    write_map(data, 'output_q1.txt')
+
     straight = data.count_more_than(1)
-    print(f'Q1: there {straight} position with more than 1 vent')
+    print(f'Q1: there are {straight} positions with more than 1 vent (diagonals excl.)')
+
+    data = Map.load_map('input.txt', straight=False)
+    write_map(data, 'output_q2.txt')
+
+    diag = data.count_more_than(1)
+    print(f'Q2: there are {diag} positions with more than 1 vent (diagonals incl.)')
