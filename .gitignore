@@ -115,3 +115,6 @@ dmypy.json
 
 # pycharm
 .idea/
+
+# Generated files
+output*.txt
