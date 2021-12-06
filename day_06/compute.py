@@ -1,5 +1,6 @@
 import dataclasses
-from typing import Optional, List
+from argparse import ArgumentParser
+from typing import Dict
 
 
 @dataclasses.dataclass
@@ -8,17 +9,23 @@ class Lanternfish:
     reproduce_new = 2
 
     reproduce_in: int = dataclasses.field(default=reproduce_reset - 1)
+    count: int = dataclasses.field(default=1)
 
-    def age(self) -> Optional["Lanternfish"]:
+    @classmethod
+    def make_baby(cls, count: int = 1):
+        return cls(cls.reproduce_reset + cls.reproduce_new - 1, count=count)
+
+    def age(self) -> int:
         self.reproduce_in -= 1
         if self.reproduce_in < 0:
             self.reproduce_in = self.reproduce_reset - 1
-            return Lanternfish(self.reproduce_reset + self.reproduce_new - 1)
+            return self.count
+        return 0
 
 
 @dataclasses.dataclass
 class School:
-    fish: List[Lanternfish] = dataclasses.field(default_factory=list)
+    fish_by_age: Dict[int, Lanternfish] = dataclasses.field(default_factory=dict)
 
     @classmethod
     def load_school(cls, filename: str) -> "School":
@@ -27,26 +34,32 @@ class School:
 
     @classmethod
     def from_str(cls, value: str) -> "School":
-        return cls([
-            Lanternfish(fish_age)
-            for fish_age in map(int, value.split(','))
-        ])
+        by_age: Dict[int, Lanternfish] = {}
+        for fish_age in map(int, value.split(',')):
+            if fish_age not in by_age:
+                by_age[fish_age] = Lanternfish(reproduce_in=fish_age, count=0)
+            by_age[fish_age].count += 1
+
+        return cls(by_age)
 
     def __len__(self):
-        return len(self.fish)
-
-    def __getitem__(self, item: int) -> Lanternfish:
-        return self.fish[item]
+        return sum((f.count for f in self.fish_by_age.values()))
 
     def age(self) -> int:
-        new_fish = []
-        for f in self.fish:
-            baby = f.age()
-            if baby is not None:
-                new_fish.append(baby)
+        new_fish = 0
+        new_fish_by_age: Dict[int, Lanternfish] = {}
 
-        self.fish += new_fish
-        return len(new_fish)
+        for f in self.fish_by_age.values():
+            new_fish += f.age()
+            if f.reproduce_in not in new_fish_by_age:
+                new_fish_by_age[f.reproduce_in] = f
+            else:
+                new_fish_by_age[f.reproduce_in].count += f.count
+
+        f = Lanternfish.make_baby(new_fish)
+        new_fish_by_age[f.reproduce_in] = f
+        self.fish_by_age = new_fish_by_age
+        return new_fish
 
     def simulate(self, days: int, verbose: bool = False) -> int:
         if verbose:
@@ -60,8 +73,14 @@ class School:
 
 
 if __name__ == '__main__':
-    school = School.load_school('input.txt')
-    print(f'Loaded a school of {len(school)} fish')
+    parser = ArgumentParser()
+    parser.add_argument('--input', type=str, default='input.txt', help='Initial state file, default is %(default)s')
+    parser.add_argument('--days', type=int, default=80,
+                        help='How many days to run the simulation for. 80 for q1, 256 for q2, default is %(default)s')
+    args = parser.parse_args()
 
-    total = school.simulate(80)
-    print(f'Q1: after 80 days there are {total} fish in the school')
+    school = School.load_school(args.input)
+    print(f'Loaded a school of {len(school)} fish from {args.input}')
+
+    total = school.simulate(args.days)
+    print(f'After {args.days} days there are {total} fish in the school')
