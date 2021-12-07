@@ -22,9 +22,6 @@ class Crab:
 
         return cost * self.count
 
-    def __lt__(self, other: "Crab") -> bool:
-        return self.position < other.position
-
 
 @dataclasses.dataclass
 class Swarm:
@@ -37,7 +34,7 @@ class Swarm:
             if v not in rv:
                 rv[v] = Crab(v)
             rv[v].count += 1
-        return cls(sorted(rv.values()))
+        return cls(list(rv.values()))
 
     @classmethod
     def from_file(cls, filename: str) -> "Swarm":
@@ -53,12 +50,9 @@ class Swarm:
         st = min(all_position)
         ed = max(all_position)
 
-        rv = {
-            p: 0
-            for p in range(st, ed + 1)
-            # We consider all locations where a crab is
-        }
-        for p in rv.keys():
+        rv = {}
+        # We consider all locations, even the ones without crabs at the moment
+        for p in range(st, ed + 1):
             rv[p] = sum((
                 c.cost_to(p, exponential)
                 for c in self.crabs
@@ -69,7 +63,7 @@ class Swarm:
     def best_position(self, exponential: bool = False) -> Tuple[int, int]:
         """Return tuple position, cost"""
         for position, cost in sorted(self.compute_position_cost(exponential).items(), key=itemgetter(1)):
-            # only return the first element since it's sorted
+            # only return the first element since it's sorted by ascending cost
             return position, cost
 
 
