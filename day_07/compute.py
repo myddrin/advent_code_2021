@@ -5,13 +5,20 @@ from typing import List, Dict, Tuple
 
 @dataclasses.dataclass
 class Crab:
-    position: int
-    count: int = 0
+    # class attributes:
+    _exp_cost_cache = {}  # type: Dict[int, int]
+
+    # object attributes:
+    position: int = dataclasses.field()
+    count: int = dataclasses.field(default=0)
 
     def cost_to(self, p: int, exponential: bool = False):
         cost = abs(p - self.position)
         if exponential:
-            cost = sum(range(1, cost + 1))
+            if cost not in self._exp_cost_cache:
+                self._exp_cost_cache[cost] = sum(range(1, cost + 1))
+
+            cost = self._exp_cost_cache[cost]
 
         return cost * self.count
 
