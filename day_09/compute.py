@@ -1,6 +1,6 @@
 import dataclasses
 from argparse import ArgumentParser
-from typing import Iterator, Dict, List
+from typing import Iterator, Dict, List, Set
 
 
 @dataclasses.dataclass(frozen=True)
@@ -8,11 +8,11 @@ class Point:
     x: int
     y: int
 
-    def neighbours(self, diagonals: bool = False) -> Iterator["Point"]:
-        for y in range(self.y - 1, self.y + 2):
-            for x in range(self.x - 1, self.x + 2):
-                if (x != self.x or y != self.y) and (diagonals or x == self.x or y == self.y):
-                    yield Point(x, y)
+    def neighbours(self) -> Iterator["Point"]:
+        yield Point(self.x, self.y - 1)
+        yield Point(self.x - 1, self.y)
+        yield Point(self.x + 1, self.y)
+        yield Point(self.x, self.y + 1)
 
 
 @dataclasses.dataclass
@@ -42,15 +42,16 @@ class Location:
 @dataclasses.dataclass
 class Map:
     points: Dict[Point, Location]
+    basins: List[List[Point]] = dataclasses.field(default_factory=list)
 
     @classmethod
-    def _compute_low_points(cls, points: List[Location]) -> Dict[Point, Location]:
+    def _compute_low_points(cls, locations: List[Location]) -> Dict[Point, Location]:
         rv = {
             l.where: l
-            for l in points
+            for l in locations
         }
 
-        for l in points:
+        for l in locations:
             neighbours = sorted((
                 rv[n].height
                 for n in l.where.neighbours()
@@ -62,13 +63,42 @@ class Map:
 
     @classmethod
     def from_file(cls, filename: str) -> "Map":
-        points = []
+        locations = []
         with open(filename, 'r') as f:
             y = 0
             for line in f:
-                points += Location.from_str(line.replace('\n', ''), y)
+                locations += Location.from_str(line.replace('\n', ''), y)
                 y += 1
-        return cls(cls._compute_low_points(points))
+
+        points_dict = cls._compute_low_points(locations)
+        return cls(points_dict)
+
+    def _compute_basins(self, location: Location, mountain: int = 9) -> List[Point]:
+        # by definition each low point is only in one basin
+        basin: Set[Point] = set()
+        marked: Set[Point] = set()  # for locations that made it into "pending"
+        pending_locations: List[Location] = [location]
+
+        while pending_locations:
+            current = pending_locations.pop(0)
+            if current.height < mountain:
+                basin.add(current.where)
+
+                for n in current.where.neighbours():
+                    if n not in marked:
+                        marked.add(n)
+                        neighbour = self.points.get(n)
+                        if neighbour is not None and neighbour.height < mountain:
+                            pending_locations.append(neighbour)
+
+        return list(basin)
+
+    def __post_init__(self):
+        if not self.basins:
+            # compute the basins
+            for l in self.points.values():
+                if l.is_low_point:
+                    self.basins.append(self._compute_basins(l))
 
     @property
     def width(self) -> int:
@@ -82,8 +112,20 @@ class Map:
         return sum((
             l.risk_level
             for l in self.points.values()
-            # if l.is_low_point
         ))
+
+    def largest_basins_risk(self, n: int = 3) -> int:
+        basin_sizes = sorted(
+            (
+                len(b)
+                for b in self.basins
+            ),
+            reverse=True,
+        )
+        rv = basin_sizes[0]
+        for i in range(1, min(len(basin_sizes), n)):
+            rv *= basin_sizes[i]
+        return rv
 
 
 if __name__ == '__main__':
@@ -93,6 +135,10 @@ if __name__ == '__main__':
 
     map = Map.from_file(args.input)
     print(f'Loaded {len(map.points)} points of a {map.width}x{map.height} grid')
+    print(f'Found {len(map.basins)} basins')
 
     q1 = map.risk_level()
     print(f'Q1: direct risk level: {q1}')
+
+    q2 = map.largest_basins_risk()
+    print(f'Q2: basin risk level: {q2}')

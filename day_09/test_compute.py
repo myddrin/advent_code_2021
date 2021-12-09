@@ -4,32 +4,8 @@ from day_09.compute import Map, Location, Point
 
 
 class TestPoint:
-    @pytest.mark.parametrize('p, diag, exp', (
-        (Point(0, 0), True, [
-            Point(-1, -1),
-            Point(0, -1),
-            Point(1, -1),
-            #
-            Point(-1, 0),
-            #Point(0, 0),  # itself
-            Point(1, 0),
-            #
-            Point(-1, 1),
-            Point(0, 1),
-            Point(1, 1),
-        ]),
-        (Point(3, 3), True, [
-            Point(2, 2),
-            Point(3, 2),
-            Point(4, 2),
-            Point(2, 3),
-            # Point(3, 3),  # itself
-            Point(4, 3),
-            Point(2, 4),
-            Point(3, 4),
-            Point(4, 4),
-        ]),
-        (Point(0, 0), False, [
+    @pytest.mark.parametrize('p, exp', (
+        (Point(0, 0), [
             Point(0, -1),
             #
             Point(-1, 0),
@@ -38,7 +14,7 @@ class TestPoint:
             #
             Point(0, 1),
         ]),
-        (Point(3, 3), False, [
+        (Point(3, 3), [
             Point(3, 2),
             Point(2, 3),
             # Point(3, 3),  # itself
@@ -46,8 +22,8 @@ class TestPoint:
             Point(3, 4),
         ]),
     ))
-    def test_neighbour(self, p, diag, exp):
-        rv = list(p.neighbours(diag))
+    def test_neighbour(self, p, exp):
+        rv = list(p.neighbours())
         assert len(rv) == len(exp), f'got: {rv}'
         assert rv == exp
 
@@ -103,6 +79,34 @@ class TestMap:
                 assert not l.is_low_point
                 assert l.risk_level == 0
 
+    def test_compute_basins(self):
+        locations = [
+            Location(Point(0, 0), 2),
+            Location(Point(1, 0), 1),  # lowest point
+            Location(Point(2, 0), 9),
+            #
+            Location(Point(0, 1), 3),
+            Location(Point(1, 1), 9),
+            Location(Point(2, 1), 8),
+            #
+            Location(Point(0, 2), 9),
+            Location(Point(1, 2), 8),
+            Location(Point(2, 2), 5),  # lowest point
+        ]
+        map = Map(Map._compute_low_points(locations))
+        # compute basins is called as a post init for each low point
+        assert len(map.basins) == 2
+        assert map.basins[0] == [
+            Point(1, 0),
+            Point(0, 1),
+            Point(0, 0),
+        ]
+        assert map.basins[1] == [
+            Point(1, 2),
+            Point(2, 1),
+            Point(2, 2),
+        ]
+
 
 def test_q1_example():
     assert Map.from_file('example.txt').risk_level() == 15
@@ -110,3 +114,11 @@ def test_q1_example():
 
 def test_q1():
     assert Map.from_file('input.txt').risk_level() == 516
+
+
+def test_q2_example():
+    assert Map.from_file('example.txt').largest_basins_risk() == 1134
+
+
+def test_q2():
+    assert Map.from_file('input.txt').largest_basins_risk() == 1023660
