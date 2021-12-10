@@ -1,4 +1,5 @@
 import dataclasses
+from argparse import ArgumentParser
 from typing import Dict, Iterable, List
 
 
@@ -107,14 +108,17 @@ class Map:
 
 
 if __name__ == '__main__':
-    data = Map.load_map('input.txt', straight=True)
-    data.write_map('output_q1.txt')
+    parser = ArgumentParser()
+    parser.add_argument('--input', type=str, default='input.txt', help='Input file')
+    parser.add_argument('--output', type=str, default=None, help='If given, write the map into the output')
+    parser.add_argument('--use-diagonals', action='store_true',
+                        help='Use diagonals, should not be used for q1 and specified for q2')
+    args = parser.parse_args()
+
+    data = Map.load_map(args.input, straight=not args.use_diagonals)
+    print(f'Loaded {len(data.points)} points from {args.input}')
+    if args.output is not None:
+        data.write_map(args.output)
 
     straight = data.count_more_than(1)
-    print(f'Q1: there are {straight} positions with more than 1 vent (diagonals excl.)')
-
-    data = Map.load_map('input.txt', straight=False)
-    data.write_map('output_q2.txt')
-
-    diag = data.count_more_than(1)
-    print(f'Q2: there are {diag} positions with more than 1 vent (diagonals incl.)')
+    print(f'There are {straight} positions with more than 1 vent (diagonals {"incl." if args.use_diagonals else "excl."})')

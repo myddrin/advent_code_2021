@@ -1,4 +1,5 @@
 import dataclasses
+from argparse import ArgumentParser
 from typing import List, Iterator, Dict, Tuple, Optional
 
 @dataclasses.dataclass
@@ -145,8 +146,12 @@ class Game:
 
 
 if __name__ == '__main__':
-    game = Game.load_game('input.txt')
-    print(f"Loaded {len(game.boards)} boards and {len(game.numbers)} numbers")
+    parser = ArgumentParser()
+    parser.add_argument('--input', type=str, default='input.txt', help='Input file')
+    args = parser.parse_args()
+
+    game = Game.load_game(args.input)
+    print(f"Loaded {len(game.boards)} boards and {len(game.numbers)} numbers from {args.input}")
 
     score = game.play()
     if score is None:

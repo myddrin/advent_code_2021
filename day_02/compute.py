@@ -1,4 +1,5 @@
 import dataclasses
+from argparse import ArgumentParser
 from enum import Enum
 from typing import List
 
@@ -85,7 +86,12 @@ def load_input(filename: str) -> List[Action]:
 
 
 if __name__ == '__main__':
-    input_data = load_input('input.txt')
+    parser = ArgumentParser()
+    parser.add_argument('--input', type=str, default='input.txt', help='Input file')
+    args = parser.parse_args()
+
+    input_data = load_input(args.input)
+    print(f'Loaded {len(input_data)} actions from {args.input}')
 
     final_position = Location.naive_reduce(input_data)
     print(f"Q1: final position: {final_position}")

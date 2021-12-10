@@ -1,4 +1,5 @@
 import dataclasses
+from argparse import ArgumentParser
 from copy import copy
 from typing import List, Tuple, Callable
 
@@ -102,8 +103,12 @@ def filter_report(data: List[ReportBinary], bit_size: int, filter_fn: Callable[[
 
 
 if __name__ == '__main__':
-    report, bit_size = load_input('input.txt')
-    print(f'Loaded {len(report)} entries (bit_size={bit_size})')
+    parser = ArgumentParser()
+    parser.add_argument('--input', type=str, default='input.txt', help='Input file')
+    args = parser.parse_args()
+
+    report, bit_size = load_input(args.input)
+    print(f'Loaded {len(report)} entries (bit_size={bit_size}) from {args.input}')
     gama, epsilon = extract_rates(report, bit_size)
     print(f'Q1: gama={gama.value} epsilon={epsilon.value} answer={gama.value * epsilon.value}')
 

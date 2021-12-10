@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 from typing import List
 
 
@@ -23,15 +24,19 @@ def sum_as_window(sonar_data: List[int], window_size: int = 3) -> List[int]:
     rv = []
 
     for i in range(len(sonar_data)):
-        if i + 3 <= len(sonar_data):
+        if i + window_size <= len(sonar_data):
             rv.append(sum(sonar_data[i:i + window_size]))
 
     return rv
 
 
 if __name__ == '__main__':
-    content = load_input('input.txt')
-    print(f"Loaded {len(content)} entries")
+    parser = ArgumentParser()
+    parser.add_argument('--input', type=str, default='input.txt', help='Input file')
+    args = parser.parse_args()
+
+    content = load_input(args.input)
+    print(f"Loaded {len(content)} entries from {args.input}")
 
     depth_increase = count_increase(content)
     print(f"Q1: {depth_increase} depth increase")
