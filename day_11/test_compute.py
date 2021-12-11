@@ -2,7 +2,7 @@ from typing import List
 
 import pytest
 
-from day_11.compute import Map, Octopus, Point
+from day_11.compute import Map, Point
 
 
 class TestPoint:
@@ -21,11 +21,6 @@ class TestPoint:
     ))
     def test_neighbours(self, where, expected):
         assert list(where.neighbours()) == expected
-
-
-class TestOctopus:
-    def test_from_str(self):
-        pass  # TODO(tr)
 
 
 class TestMap:
@@ -55,8 +50,8 @@ class TestMap:
         for y, l in enumerate(init):
             data.octopi.update(Map.from_str(l, y))
         expected_grid = [
-            list(map(int, l))
-            for l in grid
+            list(map(int, line))
+            for line in grid
         ]
 
         actual_flash = data.simulate(1)
@@ -73,6 +68,13 @@ class TestMap:
         data = Map.from_file('example.txt')
         assert data.simulate(turns) == exp_flashes
 
+    def test_q2_example(self):
+        assert Map.from_file('example.txt').simulate_until_synchronous() == 195
+
 
 def test_q1():
     assert Map.from_file('input.txt').simulate(100) == 1615
+
+
+def test_q2():
+    assert Map.from_file('input.txt').simulate_until_synchronous() == 249
