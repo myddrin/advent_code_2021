@@ -42,10 +42,12 @@ class PathLeaf:
 class Path:
     path: List[PathLeaf] = dataclasses.field(default_factory=list)
     leaves: Dict[str, PathLeaf] = dataclasses.field(default_factory=dict)
+    max_special_visits: int = dataclasses.field(default=0)
+    special_visits: List[str] = dataclasses.field(default_factory=list)
 
     @classmethod
-    def factory(cls, start: Cave) -> Tuple[str, "Path"]:
-        p = cls()
+    def factory(cls, start: Cave, special_visits: int = 0) -> Tuple[str, "Path"]:
+        p = cls(max_special_visits=special_visits)
         p.add(start)
         return str(p), p
 
@@ -60,8 +62,10 @@ class Path:
             return True
         # Visited before
         if not cave.is_big():
+            if cave.name not in ('start', 'end'):
+                return len(self.special_visits) != self.max_special_visits
             return False
-        # Otherwise we need to check if we visited all its neighbours
+        # Otherwise, we need to check if we visited all its neighbours
         if not exclude:
             exclude = []
         for n in cave.neighbours():
@@ -74,6 +78,8 @@ class Path:
             self.leaves[cave.name] = PathLeaf(cave)
         self.path.append(self.leaves[cave.name])
         self.leaves[cave.name].visited += 1
+        if not cave.is_big() and self.leaves[cave.name].visited > 1:
+            self.special_visits.append(cave.name)
 
     def end(self) -> Cave:
         return self.path[-1].cave
@@ -85,6 +91,8 @@ class Path:
         return Path(
             [copy(pl) for pl in self.path],
             {k: copy(v) for k, v in self.leaves.items()},
+            max_special_visits=self.max_special_visits,
+            special_visits=copy(self.special_visits),
         )
 
     def next_paths(self) -> List["Path"]:
@@ -95,15 +103,11 @@ class Path:
                 next_path.add(c)
                 rv.append(next_path)
 
-        # if not rv:
-        #     # We found no next step, return itself
-        #     rv = [self]
-
         return rv
 
     @classmethod
-    def find_paths(cls, start: Cave, end: Cave) -> List["Path"]:
-        rv: Dict[str, Path] = dict((Path.factory(start),))
+    def find_paths(cls, start: Cave, end: Cave, special_visits: int = 0) -> List["Path"]:
+        rv: Dict[str, Path] = dict((Path.factory(start, special_visits),))
 
         has_work = True
         while has_work:
@@ -129,13 +133,11 @@ class Path:
 class Map:
     store: Dict[str, Cave]
 
-    # def get(self, name: str) -> Optional[Cave]:
-    #     return self.store.get(name)
-
-    def find_path(self, start: str = 'start', end: str = 'end') -> List[Path]:
+    def find_path(self, start: str = 'start', end: str = 'end', special_visits: int = 0) -> List[Path]:
         return Path.find_paths(
             self.store[start],
             self.store[end],
+            special_visits,
         )
 
     def add_line(self, value: str):
@@ -167,12 +169,15 @@ if __name__ == '__main__':
     parser.add_argument('--output', type=str, default=None, help='Output file with all paths')
     parser.add_argument('--start', type=str, default='start', help='Where to start from')
     parser.add_argument('--end', type=str, default='end', help='Where to end to')
+    parser.add_argument('--special-visits', type=int, default=0,
+                        help='Number of double visits to small caves. For Q1 should be 0, for Q2 should be 1.')
     args = parser.parse_args()
 
-    map = Map.from_file(args.input)
-    print(f'Loaded {len(map.store)} entries from {args.input}')
+    map_data = Map.from_file(args.input)
+    print(f'Loaded {len(map_data.store)} entries from {args.input}')
 
-    paths = map.find_path(args.start, args.end)
+    print(f'Computing paths from {args.start} to {args.end} with {args.special_visits} double visits')
+    paths = map_data.find_path(args.start, args.end, args.special_visits)
     print(f'Found {len(paths)} paths from {args.start} to {args.end}')
 
     if args.output:
