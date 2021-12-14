@@ -2,6 +2,7 @@ import dataclasses
 import re
 from argparse import ArgumentParser
 from operator import itemgetter
+from time import time
 from typing import List, Dict, Tuple
 
 
@@ -12,7 +13,8 @@ class Rule:
 
     @property
     def replace(self):
-        return f"{self.pair[0]}{self.insert}{self.pair[1]}"
+        # Ignore {self.pair[1]} because we would not need it yet
+        return f"{self.pair[0]}{self.insert}"
 
     @classmethod
     def from_str(cls, value: str) -> "Rule":
@@ -23,37 +25,45 @@ class Rule:
 @dataclasses.dataclass
 class Bench:
     rules: Dict[str, Rule] = dataclasses.field(default_factory=dict)
-    polymer: str = ''
+    polymer: List[str] = dataclasses.field(default_factory=list)
 
     _polymer_map: Dict[str, int] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self):
-        self._update_map(self.polymer)
+        self._update_map()
 
-    def _update_map(self, value: str):
-        for l in value:
+    def _update_map(self) -> float:
+        start = time()
+        self._polymer_map.clear()
+        for l in self.polymer:
             if l not in self._polymer_map:
                 self._polymer_map[l] = 0
             self._polymer_map[l] += 1
+        return time() - start
 
     def simulate_reaction(self, steps: int = 10) -> Tuple[str, str]:
         start_polymer = self.polymer
 
         for t in range(1, steps + 1):
+            start = time()
             old_polymer = self.polymer
-            self.polymer = ''
+            self.polymer = []
             for i in range(1, len(old_polymer)):
-                current = old_polymer[i-1:i+1]
+                current = ''.join(old_polymer[i-1:i+1])
                 if current in self.rules:
                     # ignore the last letter
-                    self.polymer += self.rules[current].replace[:-1]
-                    self._update_map(self.rules[current].insert)
+                    self.polymer += self.rules[current].replace
+                    # self._update_map(self.rules[current].insert)
                 else:
                     # matched no rules, insert only the 1st letter
-                    self.polymer += current[0]
-            self.polymer += old_polymer[-1]
+                    self.polymer.append(old_polymer[i-1])
+            print(f'After step {t} the polymer is {len(self.polymer)} elements long (step took {time() - start:.3f}s)')
+            self.polymer.append(old_polymer[-1])
 
-        return start_polymer, self.polymer
+        updated = self._update_map()
+        print(f'Updated polymer map in {updated:.2f}s')
+
+        return ''.join(start_polymer), ''.join(self.polymer)
 
     def score(self) -> int:
         sorted_elems = sorted(self._polymer_map.items(), key=itemgetter(1))
@@ -83,7 +93,7 @@ class Bench:
                     r.pair: r
                     for r in rules
                 },
-                start_polymer,
+                [l for l in start_polymer],
             )
 
 

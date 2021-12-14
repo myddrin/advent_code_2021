@@ -31,8 +31,14 @@ class TestBench:
         assert bench._polymer_map.get('H') == 161
         assert bench.score() == 1588
 
+    # def test_q2_example_score_slow(self):
+    #     bench = Bench.from_file('example.txt')
+    #     bench.simulate_reaction(40)
+    #     assert bench._polymer_map.get('B') == 2192039569602
+    #     assert bench._polymer_map.get('H') == 3849876073
+    #     assert bench.score() == 2188189693529
 
-def test_q1():
-    bench = Bench.from_file('input.txt')
-    bench.simulate_reaction(10)
-    assert bench.score() == 2068
+    def test_q1(self):
+        bench = Bench.from_file('input.txt')
+        bench.simulate_reaction(10)
+        assert bench.score() == 2068
