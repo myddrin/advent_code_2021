@@ -1,0 +1,38 @@
+import pytest
+
+from day_14.compute import Bench, Rule
+
+
+class TestRule:
+
+    @pytest.mark.parametrize('value, expected', (
+        ('CH -> B', Rule('CH', 'B')),
+        ('HH -> N', Rule('HH', 'N')),
+    ))
+    def test_from_str(self, value, expected):
+        assert Rule.from_str(value) == expected
+
+
+class TestBench:
+
+    def test_q1_example(self):
+        bench = Bench.from_file('example.txt')
+
+        assert bench.simulate_reaction(1) == ('NNCB', 'NCNBCHB')
+        assert bench.simulate_reaction(1) == ('NCNBCHB', 'NBCCNBBBCBHCB')
+        assert bench.simulate_reaction(1) == ('NBCCNBBBCBHCB', 'NBBBCNCCNBBNBNBBCHBHHBCHB')
+        assert bench.simulate_reaction(1) == ('NBBBCNCCNBBNBNBBCHBHHBCHB', 'NBBNBNBBCCNBCNCCNBBNBBNBBBNBBNBBCBHCBHHNHCBBCBHCB')
+
+    def test_q1_example_score(self):
+        bench = Bench.from_file('example.txt')
+        bench.simulate_reaction(10)
+        assert bench._polymer_map.get('B') == 1749
+        assert bench._polymer_map.get('C') == 298
+        assert bench._polymer_map.get('H') == 161
+        assert bench.score() == 1588
+
+
+def test_q1():
+    bench = Bench.from_file('input.txt')
+    bench.simulate_reaction(10)
+    assert bench.score() == 2068
