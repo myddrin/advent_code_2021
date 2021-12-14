@@ -1,3 +1,5 @@
+from time import time
+
 import pytest
 
 from day_14.compute import Bench, Rule
@@ -15,13 +17,15 @@ class TestRule:
 
 class TestBench:
 
-    def test_q1_example(self):
+    def test_simulate_reaction(self):
         bench = Bench.from_file('example.txt')
 
         assert bench.simulate_reaction(1) == ('NNCB', 'NCNBCHB')
         assert bench.simulate_reaction(1) == ('NCNBCHB', 'NBCCNBBBCBHCB')
         assert bench.simulate_reaction(1) == ('NBCCNBBBCBHCB', 'NBBBCNCCNBBNBNBBCHBHHBCHB')
-        assert bench.simulate_reaction(1) == ('NBBBCNCCNBBNBNBBCHBHHBCHB', 'NBBNBNBBCCNBCNCCNBBNBBNBBBNBBNBBCBHCBHHNHCBBCBHCB')
+        assert bench.simulate_reaction(1) == (
+            'NBBBCNCCNBBNBNBBCHBHHBCHB', 'NBBNBNBBCCNBCNCCNBBNBBNBBBNBBNBBCBHCBHHNHCBBCBHCB'
+        )
 
     def test_q1_example_score(self):
         bench = Bench.from_file('example.txt')
@@ -42,3 +46,9 @@ class TestBench:
         bench = Bench.from_file('input.txt')
         bench.simulate_reaction(10)
         assert bench.score() == 2068
+
+    @pytest.mark.parametrize('value, expected', (
+        ('NNCB', ['NN', 'NC', 'CB']),
+    ))
+    def test_pairs(self, value, expected):
+        assert Bench.pairs(list(value)) == expected
