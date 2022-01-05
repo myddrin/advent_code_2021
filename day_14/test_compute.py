@@ -8,8 +8,8 @@ from day_14.compute import Bench, Rule
 class TestRule:
 
     @pytest.mark.parametrize('value, expected', (
-        ('CH -> B', Rule('CH', 'B')),
-        ('HH -> N', Rule('HH', 'N')),
+        ('CH -> B', Rule('CH', 'CBH')),
+        ('HH -> N', Rule('HH', 'HNH')),
     ))
     def test_from_str(self, value, expected):
         assert Rule.from_str(value) == expected
@@ -34,6 +34,10 @@ class TestBench:
         assert bench._polymer_map.get('C') == 298
         assert bench._polymer_map.get('H') == 161
         assert bench.score() == 1588
+
+    def test_q2_half_slow(self):
+        bench = Bench.from_file('example.txt')
+        bench.simulate_reaction(15)
 
     # def test_q2_example_score_slow(self):
     #     bench = Bench.from_file('example.txt')
