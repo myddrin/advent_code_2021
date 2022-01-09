@@ -27,7 +27,7 @@ class TestBench:
             'NBBBCNCCNBBNBNBBCHBHHBCHB', 'NBBNBNBBCCNBCNCCNBBNBBNBBBNBBNBBCBHCBHHNHCBBCBHCB'
         )
 
-    def test_q1_example_score(self):
+    def test_q1_example_slow(self):
         bench = Bench.from_file('example.txt')
         bench.simulate_reaction(10)
         assert bench._polymer_map.get('B') == 1749
@@ -35,21 +35,35 @@ class TestBench:
         assert bench._polymer_map.get('H') == 161
         assert bench.score() == 1588
 
-    def test_q2_half_slow(self):
+    def test_q1_example_score(self):
         bench = Bench.from_file('example.txt')
-        bench.simulate_reaction(15)
+        bench.fast_simulate(10)
+        assert bench._polymer_map.get('B') == 1749
+        assert bench._polymer_map.get('C') == 298
+        assert bench._polymer_map.get('H') == 161
+        assert bench.score() == 1588
 
-    # def test_q2_example_score_slow(self):
-    #     bench = Bench.from_file('example.txt')
-    #     bench.simulate_reaction(40)
-    #     assert bench._polymer_map.get('B') == 2192039569602
-    #     assert bench._polymer_map.get('H') == 3849876073
-    #     assert bench.score() == 2188189693529
+    def test_q2_example_score(self):
+        bench = Bench.from_file('example.txt')
+        bench.fast_simulate(40)
+        assert bench._polymer_map.get('B') == 2192039569602
+        assert bench._polymer_map.get('H') == 3849876073
+        assert bench.score() == 2188189693529
 
-    def test_q1(self):
+    def test_slow_q1(self):
         bench = Bench.from_file('input.txt')
         bench.simulate_reaction(10)
         assert bench.score() == 2068
+
+    def test_q1(self):
+        bench = Bench.from_file('input.txt')
+        bench.fast_simulate(10)
+        assert bench.score() == 2068
+
+    def test_q2(self):
+        bench = Bench.from_file('input.txt')
+        bench.fast_simulate(40)
+        assert bench.score() == 2158894777814
 
     @pytest.mark.parametrize('value, expected', (
         ('NNCB', ['NN', 'NC', 'CB']),

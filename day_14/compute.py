@@ -21,12 +21,21 @@ class Rule:
         pair, insert = value.split(' -> ')
         return cls(pair, pair[0] + insert + pair[1])
 
+    def output_pairs(self) -> List[str]:
+        assert len(self.output) == 3
+        return [
+            self.output[:2],
+            self.output[1:]
+        ]
+
 
 @dataclasses.dataclass
 class Bench:
+    # initial polymer
     polymer: str = dataclasses.field()
     rules: Dict[str, Rule] = dataclasses.field(default_factory=dict)
 
+    # map character -> number of entries
     _polymer_map: Dict[str, int] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self):
@@ -107,6 +116,7 @@ class Bench:
         ]
 
     def simulate_reaction(self, turns: int = 10) -> Tuple[str, str]:
+        """This is SLOW but outputs the result polymer."""
         start_polymer = self.polymer
         rule_stats: Dict[int, int] = {}
         for t in range(1, turns + 1):
@@ -140,46 +150,70 @@ class Bench:
         print(f'Map updated in {updated:.2f} sec')
         return start_polymer, self.polymer
 
-    def split_simulate(self, turns: int = 10):
-        original_polymer = self.polymer
-        for p, original_pair in enumerate(self.pairs(self.polymer)):
-            print(f'Starting pair {p + 1}/{len(original_polymer)}')
-            start = time()
-            polymer_pairs = [original_pair]
-            for r in range(1, turns + 1):
-                new_pairs = []
-                for current_pair in polymer_pairs:
-                    if current_pair in self.rules:
-                        new = self.rules[current_pair].replace
-                        new_pairs.append(new)
-                        new_pairs.append(new[1] + current_pair[-1])
-                        self._update_map(self.rules[current_pair])
-                    else:
-                        new_pairs.append(current_pair)
+    def fast_simulate(self, turns: int = 40) -> float:
+        """This is fast but only computes the polymer map"""
+        # To do a long simulation and only get the score, since it's too long to get the actual polymer
+        start = time()
+        # Map Pair -> number of time it's present
+        pair_map: Dict[str, int] = {}
+        for pair in self.pairs(self.polymer):
+            if pair not in pair_map:
+                pair_map[pair] = 0
+            pair_map[pair] += 1
+        # last character to not forget it when we will compute _polymer_map
+        left_over = self.polymer[-1]  # single character
 
-                polymer_pairs = new_pairs
-            self.polymer_pairs.extend(polymer_pairs)
-            print(
-                f'... took {time() - start:.2f} sec '
-                f'polymer has {len(self.polymer_pairs)} pairs now'
-            )
+        for t in range(1, turns + 1):
+            new_pair_map = {}
+            for pair, count in pair_map.items():
+                rule = self.rules.get(pair)
+                if rule is not None:
+                    for new_pair in rule.output_pairs():
+                        if new_pair not in new_pair_map:
+                            new_pair_map[new_pair] = 0
+                        new_pair_map[new_pair] += count
+                else:
+                    new_pair_map[pair] = count  # unknown rule
+            pair_map = new_pair_map
 
-        return self.polymer
+        # and now update the polymer map
+        self._polymer_map.clear()
+        for pair, count in pair_map.items():
+            l = pair[0]  # take the first letter only
+            if l not in self._polymer_map:
+                self._polymer_map[l] = 0
+            self._polymer_map[l] += count
+        if left_over not in self._polymer_map:
+            self._polymer_map[left_over] = 0
+        self._polymer_map[left_over] += 1
+
+        return time() - start
+
 
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--input', type=str, default='input.txt', help='Input file')
     parser.add_argument('--steps', type=int, default=10,
-                        help='Number of steps to simulate, default=%(default)s.')
+                        help='Number of steps to simulate, default=%(default)s. Use 10 for Q1 and 40 for Q2')
+    parser.add_argument('--slow', action='store_true',
+                        help='Compute the result polymer, this is slow and should not be used for steps > 15')
     args = parser.parse_args()
 
     bench = Bench.from_file(args.input)
 
     print(f'Simulating for {args.steps} steps')
-    start = time()
-    bench.simulate_reaction(args.steps)
-    print(f'Simulating {args.steps} steps took {time() - start:.2f} seconds')
+    if args.slow:
+        start = time()
+        bench.simulate_reaction(args.steps)
+        print(f'Simulating {args.steps} steps took {time() - start:.2f} seconds')
+        print(f'Result poly is {len(bench.polymer)} long')
+    else:
+        print('Doing a fast simulation')
+        duration = bench.fast_simulate(args.steps)
+        print(
+            f'Compute the polymer map for {args.steps} steps took {duration:.2f} seconds. '
+            'The result polymer is unknown.'
+        )
 
-    print(f'Result poly is {len(bench.polymer)} long')
-    print(f'Q1: {bench.score()}')
+    print(f'Score: {bench.score()}')
